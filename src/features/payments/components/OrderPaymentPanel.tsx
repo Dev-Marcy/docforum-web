@@ -11,6 +11,7 @@
 import { amountLabel } from '../stroops';
 import { transactionUrl } from '../explorer';
 import { statusCopy, statusLabel } from '../status';
+import { useFormat } from '../../../i18n/useFormat';
 import type { PaymentIntent } from '../../../types/models';
 import styles from './OrderPaymentPanel.module.css';
 
@@ -96,20 +97,16 @@ function buildTimeline(intent: PaymentIntent): TimelineEntry[] {
   }
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
-}
-
 /** A failed payment needs a human to intervene, so the panel says so
  * explicitly instead of leaving the patient with a bare status word. */
 const FAILED_SUPPORT_NOTE =
   'Nothing was released to the facility. Please contact DocForum support and quote the order reference below.';
 
 export function OrderPaymentPanel({ intent }: OrderPaymentPanelProps) {
+  const format = useFormat();
   const explorerUrl = transactionUrl(intent.stellarTxHash);
   const timeline = buildTimeline(intent);
+  const formatDate = (iso: string | null) => (iso ? format.formatDateTime(iso) : '—');
 
   return (
     <section
@@ -138,7 +135,9 @@ export function OrderPaymentPanel({ intent }: OrderPaymentPanelProps) {
         </div>
         <div className={styles.fact}>
           <dt>Started</dt>
-          <dd>{formatDate(intent.createdAt)}</dd>
+          <dd>
+            <time dateTime={intent.createdAt}>{formatDate(intent.createdAt)}</time>
+          </dd>
         </div>
         <div className={styles.fact}>
           <dt>Order reference</dt>
@@ -154,7 +153,9 @@ export function OrderPaymentPanel({ intent }: OrderPaymentPanelProps) {
           <li key={entry.key} className={styles.timelineItem} data-state={entry.state}>
             <span className={styles.dot} aria-hidden="true" />
             <span className={styles.timelineLabel}>{entry.label}</span>
-            <span className={styles.timelineDate}>{formatDate(entry.at)}</span>
+            <span className={styles.timelineDate}>
+              {entry.at ? <time dateTime={entry.at}>{formatDate(entry.at)}</time> : formatDate(entry.at)}
+            </span>
             {entry.state === 'current' && (
               <span className={styles.currentTag}>Current</span>
             )}

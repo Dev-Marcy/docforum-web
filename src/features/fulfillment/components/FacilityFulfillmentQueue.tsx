@@ -3,6 +3,7 @@ import { Button } from '../../../components/Button';
 import { FormError } from '../../../components/FormError';
 import { FulfillmentStatusBadge } from '../../../components/FulfillmentStatusBadge';
 import { TextField } from '../../../components/TextField';
+import { useFormat } from '../../../i18n/useFormat';
 import type { FulfillmentQueueItem } from '../../../types/models';
 import {
   ITEM_STATUS_LABELS,
@@ -69,6 +70,7 @@ function DispenseItemRow({
   onDispense: (itemId: string, quantity: number) => Promise<unknown>;
   onReject?: (itemId: string) => Promise<unknown>;
 }) {
+  const format = useFormat();
   const { prescribed, dispensed, outstanding } = quantities(item);
   const status = itemFulfillmentStatus(item);
   const [quantity, setQuantity] = useState(outstanding);
@@ -144,7 +146,7 @@ function DispenseItemRow({
         <p className={styles.attribution}>
           Last action: {item.attribution.action.replace('_', ' ')} by{' '}
           <strong>{item.attribution.performedByName}</strong> on{' '}
-          {new Date(item.attribution.timestamp).toLocaleString()}
+          <time dateTime={item.attribution.timestamp}>{format.formatDateTime(item.attribution.timestamp)}</time>
           {item.attribution.notes ? ` — “${item.attribution.notes}”` : ''}
         </p>
       )}
@@ -206,6 +208,7 @@ export function FacilityFulfillmentQueue({
   onDispense,
   onReject,
 }: FacilityFulfillmentQueueProps) {
+  const format = useFormat();
   const groups = useMemo(() => groupByOrder(items), [items]);
 
   return (
@@ -247,7 +250,7 @@ export function FacilityFulfillmentQueue({
                     </div>
                     <p className={styles.orderMeta}>
                       Order {group.orderId} · received{' '}
-                      {new Date(group.receivedAt).toLocaleDateString()}
+                      <time dateTime={group.receivedAt}>{format.formatDate(group.receivedAt)}</time>
                     </p>
                   </div>
                 </header>

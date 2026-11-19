@@ -4,6 +4,8 @@ import { ReferralDetailPage } from './ReferralDetailPage';
 import { useAuthStore } from '../../../store/auth-store';
 import { ApiError } from '../../../services/api-client';
 import * as referralsService from '../../../services/referrals-service';
+import { createFormatters } from '../../../i18n/format';
+import { getBrowserTimeZone } from '../../../i18n/time-zone';
 import type { ReferralDetail } from '../../../types/models';
 
 // The referral payload is self-contained by design (issue #41): this feature
@@ -16,8 +18,10 @@ const SNAPSHOT_TAKEN_AT = '2026-09-30T08:15:00.000Z';
 const UPDATED_AT = '2026-10-02T10:00:00.000Z';
 const SNAPSHOT_NOTES = 'Referred for palpitations \u2014 \u201curgent\u201d. ECG readings attached.';
 
+// Mirror the app's default formatting context: the selected language, and the
+// user's zone (the browser zone when no preference is stored).
 function humanDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return createFormatters('en-US', getBrowserTimeZone()).formatDate(iso);
 }
 
 function makeDetail(overrides: Partial<ReferralDetail> = {}): ReferralDetail {

@@ -3,6 +3,7 @@ import { usePayWithWallet } from '../hooks/usePayWithWallet';
 import { stepperIndex, type WalletPayPhase } from '../wallet-pay';
 import { transactionUrl } from '../explorer';
 import { formatStroops } from '../../../services/payments-service';
+import { useFormat } from '../../../i18n/useFormat';
 import type { PaymentIntent } from '../../../types/models';
 import styles from './PayWithWallet.module.css';
 
@@ -50,6 +51,7 @@ function Stepper({ phase }: { phase: WalletPayPhase }) {
  * and a refusal lands back at the start without error styling.
  */
 export function PayWithWallet({ orderId, intent, wallet }: PayWithWalletProps) {
+  const format = useFormat();
   const { state, start, reset, busy, confirmedTxHash } = usePayWithWallet({ orderId, intent, wallet });
   const explorer = transactionUrl(confirmedTxHash);
 
@@ -89,7 +91,8 @@ export function PayWithWallet({ orderId, intent, wallet }: PayWithWalletProps) {
           </p>
           {state.expiresAt ? (
             <p className={styles.hint}>
-              It expires at {new Date(state.expiresAt).toLocaleTimeString()} — expiring is normal, and preparing a
+              It expires at <time dateTime={state.expiresAt}>{format.formatTime(state.expiresAt)}</time> — expiring is
+              normal, and preparing a
               new one costs nothing.
             </p>
           ) : null}

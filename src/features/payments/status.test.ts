@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../../services/api-client';
 import {
+  formatDay,
   historyErrorCopy,
   orderTypeLabel,
   refundDeadlineCopy,
@@ -61,6 +62,26 @@ describe('refundDeadlineCopy', () => {
 
   it('ignores an unparseable deadline instead of printing NaN', () => {
     expect(refundDeadlineCopy('soon', NOW)).toBeNull();
+  });
+});
+
+describe('payment date formatting context', () => {
+  const LATE = '2026-10-16T23:30:00Z';
+
+  it('formats a payment day in the selected zone and language', () => {
+    expect(formatDay(LATE, { locale: 'en-US', timeZone: 'UTC' })).toBe('Oct 16, 2026');
+    expect(formatDay(LATE, { locale: 'en-US', timeZone: 'Asia/Tokyo' })).toBe('Oct 17, 2026');
+    expect(formatDay(LATE, { locale: 'en-GB', timeZone: 'UTC' })).toBe('16 Oct 2026');
+  });
+
+  it('uses the same context in the refund deadline sentence', () => {
+    expect(
+      refundDeadlineCopy('2026-10-20T12:00:00Z', NOW, { locale: 'en-GB', timeZone: 'UTC' }),
+    ).toContain('20 Oct 2026');
+  });
+
+  it('never prints "Invalid Date" for an unparseable payment date', () => {
+    expect(formatDay('not-a-date', { locale: 'en-US', timeZone: 'UTC' })).toBe('not-a-date');
   });
 });
 

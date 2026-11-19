@@ -3,17 +3,11 @@ import { EmptyState } from '../../../components/states/EmptyState';
 import { InlineError } from '../../../components/states/InlineError';
 import { queryErrorMessage } from '../../../components/states/QueryState';
 import { Skeleton } from '../../../components/states/Skeleton';
+import { useFormat } from '../../../i18n/useFormat';
 import { ApiError } from '../../../services/api-client';
 import type { Appointment, IntakeForm } from '../../../types/models';
 import { useAppointmentIntake, useTodayAppointments } from '../hooks/useDoctorToday';
 import styles from './TodayAppointments.module.css';
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function statusLabel(status: Appointment['status']) {
   return {
@@ -27,10 +21,12 @@ function statusLabel(status: Appointment['status']) {
 }
 
 function IntakeSummary({ intake }: { intake: IntakeForm }) {
+  const format = useFormat();
+
   return (
     <div className={styles.intake}>
       <p className={styles.intakeMeta}>
-        Submitted {new Date(intake.submittedAt).toLocaleString()}
+        Submitted <time dateTime={intake.submittedAt}>{format.formatDateTime(intake.submittedAt)}</time>
       </p>
       <dl className={styles.fields}>
         <div>
@@ -81,6 +77,7 @@ function IntakeSection({ appointmentId }: { appointmentId: string }) {
 
 function AppointmentRow({ appointment }: { appointment: Appointment }) {
   const [expanded, setExpanded] = useState(false);
+  const format = useFormat();
   const intakeId = `intake-${appointment.id}`;
 
   return (
@@ -92,7 +89,9 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
         aria-controls={intakeId}
         onClick={() => setExpanded((current) => !current)}
       >
-        <span className={styles.time}>{formatTime(appointment.startsAt)}</span>
+        <span className={styles.time}>
+          <time dateTime={appointment.startsAt}>{format.formatTime(appointment.startsAt)}</time>
+        </span>
         <span className={styles.patient}>
           <strong>{appointment.patientName}</strong>
           <span className={styles.reason}>{appointment.reason || 'No reason recorded'}</span>

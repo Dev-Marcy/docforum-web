@@ -1,4 +1,18 @@
+import {
+  createFormatters,
+  formatCalendarWeekday,
+  type Formatters,
+} from '../../i18n/format';
 import type { MedicationPrescription } from '../../types/models';
+
+/** Formatting context passed in by the caller. This module stays pure: it
+ * never reads a locale or time-zone preference from a store or a global. */
+export interface ScheduleFormatOptions {
+  /** BCP 47 locale for day labels. Defaults to `en-US`.` */
+  locale?: string;
+  /** IANA zone used for instants such as "ended on". Defaults to `UTC`. */
+  timeZone?: string;
+}
 
 // Pure, dependency-free schedule derivation. Everything time-based takes an
 // explicit `now` so callers (and tests) fully control the clock — nothing here
@@ -280,10 +294,10 @@ function doseTimesOnDay(course: Course, dayStart: Date): Date[] {
   return [];
 }
 
-function dayLabel(dayStart: Date, offset: number): string {
+function dayLabel(dayStart: Date, offset: number, format: Formatters): string {
   if (offset === 0) return 'Today';
-  const weekday = dayStart.toLocaleDateString('en-US', { weekday: 'short' });
-  const day = dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const weekday = formatCalendarWeekday(dayStart, format.locale);
+  const day = format.formatCalendarDate(dayStart);
   return `${weekday} ${day}`;
 }
 
@@ -291,7 +305,9 @@ export function buildMedicationSchedule(
   prescriptions: MedicationPrescription[],
   now: Date,
   horizonDays = 7,
+  formatOptions: ScheduleFormatOptions = {},
 ): MedicationSchedule {
+  const format = createFormatters(formatOptions.locale, formatOptions.timeZone);
   const courses = buildCourses(prescriptions, now);
   const todayStart = startOfDay(now);
   const activeScheduled = courses.filter((c) => c.scheduled && !c.ended);
@@ -313,7 +329,7 @@ export function buildMedicationSchedule(
       }
     }
     entries.sort((a, b) => a.time.localeCompare(b.time));
-    days.push({ dateKey: dateKey(dayStart), label: dayLabel(dayStart, i), date: dayStart, entries });
+    days.push({ dateKey: dateKey(dayStart), label: dayLabel(dayStart, i, format), date: dayStart, entries });
   }
 
   const unscheduled: UnscheduledItem[] = courses
@@ -334,7 +350,9 @@ export function buildMedicationSchedule(
       drugName: c.drugName,
       dosage: c.dosage,
       frequencyText: c.frequencyText,
-      endedOn: c.end ? c.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+      // A course end is a calendar day derived from the start date, so it is
+      // formatted as a day (never converted through a zone) to stay stable.
+      endedOn: c.end ? format.formatCalendarDate(c.end) : '',
     }));
 
   const overlaps: OverlapWarning[] = [];

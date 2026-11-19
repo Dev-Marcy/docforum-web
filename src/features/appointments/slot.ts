@@ -1,6 +1,15 @@
+import { createFormatters } from '../../i18n/format';
 import type { PatientAppointment } from '../../types/models';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Explicit formatting context. Pure callers pass it in rather than relying on
+ * the machine's locale or zone; omitting it keeps the browser default, which
+ * is the documented fallback when no user preference exists. */
+export interface SlotFormatOptions {
+  locale?: string;
+  timeZone?: string;
+}
 
 function slotStart(appointment: PatientAppointment): number {
   return new Date(appointment.availabilitySlot.startTime).getTime();
@@ -16,6 +25,25 @@ function isSameLocalDay(a: number, b: number): boolean {
     da.getMonth() === db.getMonth() &&
     da.getDate() === db.getDate()
   );
+}
+
+/** `YYYY-MM-DD` in `timeZone` (the browser zone when none is given). */
+function dayKey(date: Date, timeZone?: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch {
+    return '';
+  }
+}
+
+function isSameDayInZone(a: Date, b: Date, timeZone?: string): boolean {
+  const keyA = dayKey(a, timeZone);
+  return keyA !== '' && keyA === dayKey(b, timeZone);
 }
 
 export function isOnSlotDay(appointment: PatientAppointment, now: Date): boolean {
@@ -38,21 +66,22 @@ export function isUpcoming(appointment: PatientAppointment, now: Date): boolean 
   return appointment.status === 'scheduled' && (start >= now.getTime() || isSameLocalDay(start, now.getTime()));
 }
 
-function pad(value: number): string {
-  return value.toString().padStart(2, '0');
-}
-
-export function formatSlotTime(iso: string): string {
+/** 24-hour start time in the caller's zone, never a made-up one. */
+export function formatSlotTime(iso: string, options: SlotFormatOptions = {}): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return createFormatters(options.locale, options.timeZone).formatTime(iso, { hourCycle: 'h23' });
 }
 
-export function formatSlotDate(iso: string, now: Date = new Date()): string {
+export function formatSlotDate(
+  iso: string,
+  now: Date = new Date(),
+  options: SlotFormatOptions = {},
+): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  if (isSameLocalDay(date.getTime(), now.getTime())) return 'today';
+  if (isSameDayInZone(date, now, options.timeZone)) return 'today';
   const tomorrow = new Date(now.getTime() + DAY_MS);
-  if (isSameLocalDay(date.getTime(), tomorrow.getTime())) return 'tomorrow';
-  return date.toLocaleDateString();
+  if (isSameDayInZone(date, tomorrow, options.timeZone)) return 'tomorrow';
+  return createFormatters(options.locale, options.timeZone).formatDate(iso);
 }

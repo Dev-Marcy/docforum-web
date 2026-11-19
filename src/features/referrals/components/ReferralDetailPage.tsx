@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { FormError } from '../../../components/FormError';
 import { Spinner } from '../../../components/Spinner';
 import { ApiError } from '../../../services/api-client';
+import { useFormat } from '../../../i18n/useFormat';
 import { useReferralDetail } from '../hooks/useReferralDetail';
 import type { AppointmentStatus } from '../../../types/models';
 import { ReferralAccessDenied } from './ReferralAccessDenied';
@@ -18,12 +19,9 @@ const APPOINTMENT_LABELS: Record<AppointmentStatus, string> = {
   no_show: 'Did not attend',
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
 export function ReferralDetailPage({ referralId }: { referralId: string }) {
   const referralQuery = useReferralDetail(referralId);
+  const format = useFormat();
 
   if (referralQuery.isPending) {
     return (
@@ -83,7 +81,7 @@ export function ReferralDetailPage({ referralId }: { referralId: string }) {
             {referral.appointment.status === 'scheduled' ? (
               <>
                 {' · '}
-                <time dateTime={referral.updatedAt}>{formatDate(referral.updatedAt)}</time>
+                <time dateTime={referral.updatedAt}>{format.formatDate(referral.updatedAt)}</time>
               </>
             ) : null}
           </p>

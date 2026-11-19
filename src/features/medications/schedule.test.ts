@@ -227,3 +227,30 @@ describe('buildMedicationSchedule', () => {
     expect(schedule.overlaps[0].count).toBe(2);
   });
 });
+
+describe('buildMedicationSchedule formatting context', () => {
+  it('labels days in the requested locale without shifting the day', () => {
+    const schedule = buildMedicationSchedule([rx()], NOW, 7, {
+      locale: 'de-DE',
+      timeZone: 'Asia/Tokyo',
+    });
+
+    expect(schedule.days[0].label).toBe('Today');
+    // NOW is 15 April local; the next day is still 16 April in the label even
+    // though Tokyo is ahead of the machine's zone.
+    expect(schedule.days[1].dateKey).toBe('2026-04-16');
+    expect(schedule.days[1].label).toContain('16');
+    expect(schedule.days[1].label).not.toBe('Thu Apr 16');
+  });
+
+  it('formats a course end as a calendar day, not a zone-shifted instant', () => {
+    const schedule = buildMedicationSchedule(
+      [rx({ createdAt: '2026-03-01T06:00:00', items: [item({ duration: '7 days' })] })],
+      NOW,
+      7,
+      { locale: 'en-US', timeZone: 'Pacific/Kiritimati' },
+    );
+
+    expect(schedule.ended[0].endedOn).toBe('Mar 8, 2026');
+  });
+});

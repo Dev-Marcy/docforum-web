@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { PrintLayout, usePrint } from '../../../components/PrintLayout';
 import { amountLabel } from '../stroops';
 import { formatDay, orderTypeLabel, refundDeadlineCopy, statusCopy, statusLabel } from '../status';
+import { useFormat } from '../../../i18n/useFormat';
 import { transactionUrl } from '../explorer';
 import type { PaymentHistoryEntry } from '../../../types/models';
 import { Button } from '../../../components/Button';
@@ -16,9 +17,11 @@ interface Props {
 export function PaymentReceiptDocument({ entry, now }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const { onPrint, onExportPdf, isExporting, exportError } = usePrint();
+  const format = useFormat();
+  const formatOptions = { locale: format.locale, timeZone: format.timeZone };
 
   const txLink = transactionUrl(entry.stellarTxHash);
-  const refund = refundDeadlineCopy(entry.refundDeadlineAt, now);
+  const refund = refundDeadlineCopy(entry.refundDeadlineAt, now, formatOptions);
 
   return (
     <div>
@@ -37,7 +40,9 @@ export function PaymentReceiptDocument({ entry, now }: Props) {
           <dl style={{ display: 'grid', gap: 'var(--space-2)', margin: 0 }}>
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
               <dt style={{ fontWeight: 600, minWidth: '8rem' }}>Paid on</dt>
-              <dd style={{ margin: 0 }}>{formatDay(entry.createdAt)}</dd>
+              <dd style={{ margin: 0 }}>
+                <time dateTime={entry.createdAt}>{formatDay(entry.createdAt, formatOptions)}</time>
+              </dd>
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
               <dt style={{ fontWeight: 600, minWidth: '8rem' }}>For</dt>

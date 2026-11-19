@@ -6,6 +6,8 @@ import * as queueService from '../../../services/queue-service';
 import * as doctorTodayService from '../../../services/doctor-today-service';
 import { ApiError } from '../../../services/api-client';
 import type { Appointment, IntakeForm } from '../../../types/models';
+import { createFormatters } from '../../../i18n/format';
+import { getBrowserTimeZone } from '../../../i18n/time-zone';
 import { TodayAppointments } from './TodayAppointments';
 
 vi.mock('../../../services/queue-service');
@@ -113,5 +115,23 @@ describe('TodayAppointments', () => {
     await user.click(await screen.findByRole('button', { name: /First Patient/i }));
 
     expect(await screen.findByText(/could not load this intake/i)).toBeInTheDocument();
+  });
+});
+
+describe('TodayAppointments timestamps (#254)', () => {
+  const STARTS_AT = '2026-10-16T23:30:00.000Z';
+  // Without a stored preference the display zone is the browser zone, which is
+  // what the shared formatter is bound to in this render.
+  const expectedTime = createFormatters('en-US', getBrowserTimeZone()).formatTime(STARTS_AT);
+
+  it('renders the visit time through the shared formatter inside a <time> element', async () => {
+    vi.mocked(queueService.listTodayAppointments).mockResolvedValue([
+      { ...APPOINTMENTS[0], id: 'apt-tz', startsAt: STARTS_AT, patientName: 'Timed Patient (fake)' },
+    ]);
+    render(<TodayAppointments />);
+
+    const time = await screen.findByText(expectedTime);
+    expect(time.tagName).toBe('TIME');
+    expect(time).toHaveAttribute('dateTime', STARTS_AT);
   });
 });

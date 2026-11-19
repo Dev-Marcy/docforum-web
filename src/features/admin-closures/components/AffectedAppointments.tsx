@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useFormat } from '../../../i18n/useFormat';
 import type { AffectedAppointment } from '../../../types/models';
 
 interface AffectedAppointmentsProps {
@@ -7,6 +8,7 @@ interface AffectedAppointmentsProps {
 }
 
 export function AffectedAppointments({ closureId, data }: AffectedAppointmentsProps) {
+  const format = useFormat();
   const appointments = data ?? [];
 
   useEffect(() => {
@@ -35,7 +37,9 @@ export function AffectedAppointments({ closureId, data }: AffectedAppointmentsPr
             <br />
             {appointment.startsAt && appointment.endsAt && (
               <span>
-                {new Date(appointment.startsAt).toLocaleString()} -{' '}{new Date(appointment.endsAt).toLocaleString()}
+                <time dateTime={appointment.startsAt}>{format.formatDateTime(appointment.startsAt)}</time>
+                {' – '}
+                <time dateTime={appointment.endsAt}>{format.formatDateTime(appointment.endsAt)}</time>
               </span>
             )}
             <br />

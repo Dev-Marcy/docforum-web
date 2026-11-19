@@ -1,17 +1,9 @@
 import { InlineError } from '../../../components/states/InlineError';
 import { queryErrorMessage } from '../../../components/states/QueryState';
 import { Skeleton } from '../../../components/states/Skeleton';
+import { useFormat } from '../../../i18n/useFormat';
 import { usePatientChart } from '../hooks/usePatientChart';
 import styles from './PatientChartPanel.module.css';
-
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 export function PatientChartPanel({ patientProfileId }: { patientProfileId?: string }) {
   const {
@@ -24,6 +16,8 @@ export function PatientChartPanel({ patientProfileId }: { patientProfileId?: str
     isLoading,
     error,
   } = usePatientChart(patientProfileId ?? undefined);
+  const format = useFormat();
+  const formatDate = (iso: string | null | undefined) => (iso ? format.formatDate(iso) : '—');
 
   if (isLoading) return <Skeleton lines={6} height="1.5rem" label="Loading patient chart" />;
   if (error) {
@@ -143,7 +137,7 @@ export function PatientChartPanel({ patientProfileId }: { patientProfileId?: str
                   <td>{o.items.map((item) => item.name).join(', ')}</td>
                   <td>{o.items.map((item) => item.note).filter(Boolean).join('; ') || ''}</td>
                   <td>{formatDate(o.issuedAt)}</td>
-                  <td>{formatDate(o.expiresAt)}</td>
+                  <td>{o.expiresAt ? <time dateTime={o.expiresAt}>{formatDate(o.expiresAt)}</time> : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -180,7 +174,9 @@ export function PatientChartPanel({ patientProfileId }: { patientProfileId?: str
                       {r.isCritical ? 'Critical' : r.isAbnormal ? 'Abnormal' : 'Normal'}
                     </span>
                   </td>
-                  <td>{formatDate(r.issuedAt)}</td>
+                  <td>
+                    <time dateTime={r.issuedAt}>{formatDate(r.issuedAt)}</time>
+                  </td>
                 </tr>
               ))}
             </tbody>

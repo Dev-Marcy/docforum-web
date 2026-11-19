@@ -3,6 +3,7 @@ import { Button } from '../../../components/Button';
 import { Spinner } from '../../../components/Spinner';
 import { CreateWebhookDialog } from './CreateWebhookDialog';
 import { WebhookDeliveries } from './WebhookDeliveries';
+import { useFormat } from '../../../i18n/useFormat';
 import {
   useWebhookEndpoints,
   useDeleteWebhookEndpoint,
@@ -31,6 +32,7 @@ interface WebhooksPanelProps {
 }
 
 export function WebhooksPanel({ facilityId }: WebhooksPanelProps) {
+  const format = useFormat();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [expandedEndpointId, setExpandedEndpointId] = useState<string | null>(null);
   const { data: endpointsData, isLoading } = useWebhookEndpoints(facilityId);
@@ -102,9 +104,13 @@ export function WebhooksPanel({ facilityId }: WebhooksPanelProps) {
                     <span>Secret: {endpoint.secretPrefix}…</span>
                     <span>
                       Last delivery:{' '}
-                      {endpoint.lastDeliveryAt
-                        ? new Date(endpoint.lastDeliveryAt).toLocaleString()
-                        : 'Never'}
+                      {endpoint.lastDeliveryAt ? (
+                        <time dateTime={endpoint.lastDeliveryAt}>
+                          {format.formatDateTime(endpoint.lastDeliveryAt)}
+                        </time>
+                      ) : (
+                        'Never'
+                      )}
                     </span>
                   </div>
                 </div>

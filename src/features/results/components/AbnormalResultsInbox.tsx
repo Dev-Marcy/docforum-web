@@ -5,10 +5,12 @@ import { EmptyState } from '../../../components/states/EmptyState';
 import { InlineError } from '../../../components/states/InlineError';
 import { queryErrorMessage } from '../../../components/states/QueryState';
 import { Skeleton } from '../../../components/states/Skeleton';
+import { useFormat } from '../../../i18n/useFormat';
 import type { AbnormalResult } from '../../../types/models';
 import styles from './AbnormalResultsInbox.module.css';
 
 export function AbnormalResultsInbox() {
+  const format = useFormat();
   const { data: results = [], isLoading, error, refetch } = usePendingAbnormalResults();
   const acknowledgeMutation = useAcknowledgeAbnormalResult();
   const [acknowledgeOpen, setAcknowledgeOpen] = useState<{ id: string; patientName: string } | null>(null);
@@ -113,7 +115,7 @@ export function AbnormalResultsInbox() {
                   <td>{result.testName}</td>
                   <td>{result.value}</td>
                   <td>
-                    {new Date(result.issuedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    <time dateTime={result.issuedAt}>{format.formatDate(result.issuedAt)}</time>
                   </td>
                   <td className={styles.actionsCol}>
                     <Button

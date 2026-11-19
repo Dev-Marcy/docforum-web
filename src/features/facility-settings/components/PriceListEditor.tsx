@@ -16,11 +16,17 @@ import {
   parseEffectiveFrom,
   toLocalDateTimeInput,
 } from '../validation';
+import { effectiveFromDisplay, effectiveFromZoneLabel } from '../effective-from';
+import { useFormat } from '../../../i18n/useFormat';
+import { useTimeZone } from '../../../i18n/TimeZoneProvider';
 import styles from './FacilitySettings.module.css';
 
 interface PriceListEditorProps {
   facilityId: string;
   onDirtyChange: (dirty: boolean) => void;
+  /** The facility's configured display zone, when the API exposes one.
+   * Missing/invalid falls back to the signed-in user's zone. */
+  facilityTimeZone?: string | null;
 }
 
 function currentPriceFor(
@@ -52,7 +58,9 @@ function priceStatus(
   return current?.id === price.id ? 'Current' : 'Superseded';
 }
 
-export function PriceListEditor({ facilityId, onDirtyChange }: PriceListEditorProps) {
+export function PriceListEditor({ facilityId, onDirtyChange, facilityTimeZone }: PriceListEditorProps) {
+  const format = useFormat();
+  const { timeZone: userTimeZone } = useTimeZone();
   const { data: prices = [], isLoading, error } = useFacilityPrices(facilityId);
   const searchMutation = useSearchCatalogItems();
   const createMutation = useCreateFacilityPrice(facilityId);
@@ -355,6 +363,16 @@ export function PriceListEditor({ facilityId, onDirtyChange }: PriceListEditorPr
                   )
                   .map((price) => {
                     const status = priceStatus(price, prices);
+                    const effective = effectiveFromDisplay(price.effectiveFrom, {
+                      facilityTimeZone,
+                      userTimeZone,
+                      locale: format.locale,
+                    });
+                    const effectiveZone = effectiveFromZoneLabel(
+                      effective,
+                      price.effectiveFrom,
+                      format.locale,
+                    );
                     return (
                       <tr key={price.id}>
                         <td>
@@ -367,7 +385,12 @@ export function PriceListEditor({ facilityId, onDirtyChange }: PriceListEditorPr
                         <td className={styles.amountCell}>
                           {formatAmountFromStroops(price.amountStroops, price.asset)} {price.asset}
                         </td>
-                        <td>{new Date(price.effectiveFrom).toLocaleString()}</td>
+                        <td>
+                          <time dateTime={price.effectiveFrom}>{effective.text}</time>
+                          <div className={styles.helperText}>
+                            {effectiveZone} · {effective.source === 'facility' ? 'facility time' : 'your time'}
+                          </div>
+                        </td>
                         <td>
                           <span
                             className={`${styles.statusPill} ${

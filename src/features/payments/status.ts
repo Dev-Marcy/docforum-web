@@ -1,5 +1,12 @@
 import { ApiError } from '../../services/api-client';
+import { createFormatters } from '../../i18n/format';
 import type { OrderTypeForPayment, PaymentIntentStatus } from '../../types/models';
+
+/** Explicit formatting context for these pure helpers. */
+export interface PaymentFormatOptions {
+  locale?: string;
+  timeZone?: string;
+}
 
 export const STATUS_LABEL: Record<PaymentIntentStatus, string> = {
   created: 'Not funded',
@@ -35,9 +42,9 @@ export function orderTypeLabel(orderType: OrderTypeForPayment): string {
   return orderType === 'prescription' ? 'Prescription' : 'Lab order';
 }
 
-export function formatDay(iso: string): string {
+export function formatDay(iso: string, options: PaymentFormatOptions = {}): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? iso : createFormatters(options.locale, options.timeZone).formatDate(iso);
 }
 
 /** An empty payment list and a list that could not be fetched are different
@@ -53,11 +60,15 @@ export function historyErrorCopy(error: unknown): string {
 
 /** `refundDeadlineAt` is assumed (docforum-core#90) — the real row has no such
  * column, so absence is normal and renders nothing rather than a guess. */
-export function refundDeadlineCopy(deadline: string | null | undefined, now: Date): string | null {
+export function refundDeadlineCopy(
+  deadline: string | null | undefined,
+  now: Date,
+  options: PaymentFormatOptions = {},
+): string | null {
   if (!deadline) return null;
   const date = new Date(deadline);
   if (Number.isNaN(date.getTime())) return null;
-  const day = date.toLocaleDateString();
+  const day = formatDay(deadline, options);
   return date.getTime() < now.getTime()
     ? `The refund window closed on ${day}.`
     : `This payment can still be refunded until ${day}.`;

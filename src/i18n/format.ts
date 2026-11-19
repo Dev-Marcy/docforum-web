@@ -87,6 +87,36 @@ export interface DateFormatOptions {
   withTimeZoneName?: boolean;
   /** Include the time as well as the date. */
   withTime?: boolean;
+  /** Force a 12- or 24-hour clock instead of the locale's default. */
+  hourCycle?: 'h12' | 'h23';
+}
+
+/**
+ * Anchor a calendar date at noon UTC, taking its own (local) year/month/day
+ * parts. Everything that denotes a *day* rather than an instant goes through
+ * this so no zone conversion can move it to the neighbouring day.
+ */
+export function toCalendarAnchor(value: Date | string): Date {
+  if (typeof value === 'string') {
+    if (DATE_ONLY.test(value)) return new Date(`${value}T12:00:00.000Z`);
+    const parsed = parseIso(value);
+    return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 12));
+  }
+  return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate(), 12));
+}
+
+/**
+ * Weekday label for a calendar day ("Wed"), formatted in `locale`.
+ * The day is never shifted: only the date parts are read.
+ */
+export function formatCalendarWeekday(value: Date | string, locale: string): string {
+  try {
+    return new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(
+      toCalendarAnchor(value),
+    );
+  } catch {
+    return '—';
+  }
 }
 
 export interface AssetAmountOptions {
@@ -116,7 +146,8 @@ export function createFormatters(locale: string = DEFAULT_LOCALE, defaultTimeZon
     new Intl.DateTimeFormat(locale, options);
 
   function formatDate(value: string | Date, options: Omit<DateFormatOptions, 'withTimeZoneName' | 'withTime'> = {}): string {
-    const timeZone = options.timeZone ?? (DATE_ONLY.test(String(value)) ? 'UTC' : defaultTimeZone);
+    // A date-only value is a calendar fact: no requested zone may move it.
+    const timeZone = DATE_ONLY.test(String(value)) ? 'UTC' : (options.timeZone ?? defaultTimeZone);
     return safeFormat(
       value,
       dateFormatter({ year: 'numeric', month: 'short', day: 'numeric', timeZone }),
@@ -130,10 +161,33 @@ export function createFormatters(locale: string = DEFAULT_LOCALE, defaultTimeZon
       dateFormatter({
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: options.timeZone ?? defaultTimeZone,
+        timeZone: options.timeZone ?? (DATE_ONLY.test(String(value)) ? 'UTC' : defaultTimeZone),
+        ...(options.hourCycle ? { hourCycle: options.hourCycle } : {}),
       }),
       '—',
     );
+  }
+
+  /**
+   * Formats a calendar date — a day, not an instant. Date-only strings and
+   * `Date` objects that carry a local calendar day are rendered in UTC from
+   * their own date parts, so a zone conversion can never move the day.
+   * Use `formatDate` for timestamps (instants).
+   */
+  function formatCalendarDate(value: string | Date, _options: { timeZone?: string } = {}): string {
+    const anchor = toCalendarAnchor(value);
+    if (!isValidDate(anchor)) return '—';
+    try {
+      return dateFormatter({
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        // Calendar days are always rendered in UTC from their own parts.
+        timeZone: 'UTC',
+      }).format(anchor);
+    } catch {
+      return '—';
+    }
   }
 
   function formatDateTime(value: string | Date, options: DateFormatOptions = {}): string {
@@ -145,8 +199,11 @@ export function createFormatters(locale: string = DEFAULT_LOCALE, defaultTimeZon
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: options.timeZone ?? defaultTimeZone,
+        // A date-only value is a calendar fact, so it stays anchored in UTC
+        // even when the formatter or the caller asks for another zone.
+        timeZone: DATE_ONLY.test(String(value)) ? 'UTC' : (options.timeZone ?? defaultTimeZone),
         ...(options.withTimeZoneName ? { timeZoneName: 'short' as const } : {}),
+        ...(options.hourCycle ? { hourCycle: options.hourCycle } : {}),
       }),
       '—',
     );
@@ -275,9 +332,11 @@ export function createFormatters(locale: string = DEFAULT_LOCALE, defaultTimeZon
 
   return {
     locale,
+    timeZone: defaultTimeZone,
     formatDate,
     formatTime,
     formatDateTime,
+    formatCalendarDate,
     formatAppointmentTime,
     formatRelativeTime,
     formatNumber,

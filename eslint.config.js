@@ -43,6 +43,41 @@ export default tseslint.config(
     },
   },
   {
+    // Issues #254/#255: a direct `toLocale*String()` call formats with the
+    // machine's locale and system zone, ignoring the language and time zone
+    // the user selected. Route every displayed date/time through the shared
+    // formatters in `src/i18n` instead.
+    //
+    // Scoped to the features migrated in #254/#255. A repository-wide rule is
+    // deferred until the remaining legacy call sites (see the PR description)
+    // are migrated; `src/i18n` is where the implementation itself lives and
+    // is never restricted.
+    files: [
+      'src/features/{doctor-today,referrals,results,patient-chart,medications,care-hub,appointments,verification}/**/*.{ts,tsx}',
+      'src/features/{payments,fulfillment,facility-queue,facility-settings,integrations,insights,admin-closures}/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.property.name='toLocaleString']",
+          message:
+            'Use the shared formatters (useFormat/ZonedTime in src/i18n) instead of toLocaleString() so dates follow the selected language and time zone.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleDateString']",
+          message:
+            'Use the shared formatters (useFormat/ZonedTime in src/i18n) instead of toLocaleDateString() so dates follow the selected language and time zone.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleTimeString']",
+          message:
+            'Use the shared formatters (useFormat/ZonedTime in src/i18n) instead of toLocaleTimeString() so times follow the selected language and time zone.',
+        },
+      ],
+    },
+  },
+  {
     // Test doubles legitimately need `any` (mock event objects, partial
     // Sentry events) and the casts are local to assertions; keeping the
     // rule on for production code is what matters.

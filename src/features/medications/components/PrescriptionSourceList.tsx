@@ -1,18 +1,14 @@
 import { Spinner } from '../../../components/Spinner';
 import { ApiError } from '../../../services/api-client';
 import { FormError } from '../../../components/FormError';
+import { useFormat } from '../../../i18n/useFormat';
 import { useMedicationSchedule } from '../hooks/useMedicationSchedule';
 import styles from './PrescriptionSourceList.module.css';
-
-function formatIssued(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
 
 // Renders each prescription line exactly as the prescriber wrote it, so the
 // derived Today/This-week view can always be checked against its source.
 export function PrescriptionSourceList() {
+  const format = useFormat();
   const { data: prescriptions, isLoading, error } = useMedicationSchedule();
 
   const apiError = error instanceof ApiError ? error.message : error ? 'Failed to load prescriptions.' : null;
@@ -35,7 +31,11 @@ export function PrescriptionSourceList() {
         <div key={rx.id} className={styles.prescription}>
           <div className={styles.prescriptionHeader}>
             <span className={styles.prescriber}>{rx.prescribingDoctorName ?? 'Prescriber not listed'}</span>
-            {rx.createdAt && <span className={styles.issued}>Issued {formatIssued(rx.createdAt)}</span>}
+            {rx.createdAt && (
+              <span className={styles.issued}>
+                Issued <time dateTime={rx.createdAt}>{format.formatDate(rx.createdAt)}</time>
+              </span>
+            )}
           </div>
           <ul className={styles.items}>
             {rx.items.map((item) => (

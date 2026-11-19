@@ -1,6 +1,7 @@
 import { useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Button } from '../../../components/Button';
 import { FormError } from '../../../components/FormError';
+import { useFormat } from '../../../i18n/useFormat';
 import { useCredentialResubmit, useDeleteCredential } from '../hooks/useCredentialUpload';
 import {
   CLAIM_ITEM_STATUS_LABELS,
@@ -18,10 +19,6 @@ interface Props {
   credentials: readonly DoctorCredential[];
   isLoading: boolean;
   error: string | null;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function rejectionMessage(error: Error | null, fallback: string): string | null {
@@ -124,6 +121,7 @@ function ResubmitForm({ credential, onClose }: ResubmitFormProps) {
 }
 
 export function CredentialList({ credentials, isLoading, error }: Props) {
+  const format = useFormat();
   const deleteMutation = useDeleteCredential();
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -172,7 +170,9 @@ export function CredentialList({ credentials, isLoading, error }: Props) {
               </div>
               <div className={styles.metaPair}>
                 <dt className={styles.metaKey}>Submitted</dt>
-                <dd className={styles.metaValue}>{formatDate(credential.submittedAt)}</dd>
+                <dd className={styles.metaValue}>
+                  <time dateTime={credential.submittedAt}>{format.formatDate(credential.submittedAt)}</time>
+                </dd>
               </div>
             </dl>
 

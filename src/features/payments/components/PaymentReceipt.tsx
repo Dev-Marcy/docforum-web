@@ -1,6 +1,7 @@
 import { contractUrl, transactionUrl } from '../explorer';
 import { amountLabel } from '../stroops';
 import { formatDay, orderTypeLabel, refundDeadlineCopy, statusCopy, statusLabel } from '../status';
+import { useFormat } from '../../../i18n/useFormat';
 import type { PaymentHistoryEntry } from '../../../types/models';
 import styles from './PaymentReceipt.module.css';
 
@@ -14,9 +15,11 @@ interface Props {
  * without a browser. `orderId` is not shown — it is an internal pointer, not
  * something a patient can act on. */
 export function PaymentReceipt({ entry, now }: Props) {
+  const format = useFormat();
+  const formatOptions = { locale: format.locale, timeZone: format.timeZone };
   const txLink = transactionUrl(entry.stellarTxHash);
   const contractLink = contractUrl(entry.sorobanContractId);
-  const refund = refundDeadlineCopy(entry.refundDeadlineAt, now);
+  const refund = refundDeadlineCopy(entry.refundDeadlineAt, now, formatOptions);
 
   return (
     <div className={styles.receipt} data-testid="payment-receipt">
@@ -25,7 +28,9 @@ export function PaymentReceipt({ entry, now }: Props) {
 
       <dl className={styles.fields}>
         <dt>Paid on</dt>
-        <dd>{formatDay(entry.createdAt)}</dd>
+        <dd>
+          <time dateTime={entry.createdAt}>{formatDay(entry.createdAt, formatOptions)}</time>
+        </dd>
 
         <dt>For</dt>
         <dd>{orderTypeLabel(entry.orderType)}</dd>

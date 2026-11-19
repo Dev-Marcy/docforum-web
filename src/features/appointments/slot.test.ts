@@ -77,3 +77,35 @@ describe('slot day maths', () => {
     expect(formatSlotTime('not-a-date')).toBe('not-a-date');
   });
 });
+
+describe('slot formatting with explicit context', () => {
+  // 23:30 UTC is already the next morning in Tokyo — the case that used to
+  // make a shared timestamp depend on the machine's zone.
+  const SLOT = '2026-10-16T23:30:00.000Z';
+
+  it('renders the instant in the requested zone', () => {
+    expect(formatSlotTime(SLOT, { timeZone: 'UTC' })).toBe('23:30');
+    expect(formatSlotTime(SLOT, { timeZone: 'Asia/Tokyo' })).toBe('08:30');
+  });
+
+  it('resolves today in the requested zone', () => {
+    const now = new Date('2026-10-16T22:00:00.000Z');
+    expect(formatSlotDate(SLOT, now, { timeZone: 'UTC', locale: 'en-US' })).toBe('today');
+
+    // Ten hours later the UTC day has moved on, but the visit is still today
+    // for a reader in Tokyo — the label must follow the reader's zone.
+    const nextMorning = new Date('2026-10-17T10:00:00.000Z');
+    expect(formatSlotDate(SLOT, nextMorning, { timeZone: 'UTC', locale: 'en-US' })).toBe(
+      'Oct 16, 2026',
+    );
+    expect(formatSlotDate(SLOT, nextMorning, { timeZone: 'Asia/Tokyo', locale: 'en-US' })).toBe(
+      'today',
+    );
+  });
+
+  it('localizes the fallback date in the selected language', () => {
+    const later = new Date('2026-10-01T00:00:00.000Z');
+    expect(formatSlotDate(SLOT, later, { timeZone: 'UTC', locale: 'en-US' })).toBe('Oct 16, 2026');
+    expect(formatSlotDate(SLOT, later, { timeZone: 'UTC', locale: 'de-DE' })).toContain('Okt');
+  });
+});

@@ -4,6 +4,7 @@ import { EmptyState } from '../../../components/states/EmptyState';
 import { InlineError } from '../../../components/states/InlineError';
 import { queryErrorMessage } from '../../../components/states/QueryState';
 import { Skeleton } from '../../../components/states/Skeleton';
+import { useFormat } from '../../../i18n/useFormat';
 import type {
   FulfillmentLabResult,
   FulfillmentQueueItem,
@@ -36,16 +37,6 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function attributionVerb(action: NonNullable<FulfillmentQueueItem['attribution']>['action']) {
   switch (action) {
     case 'dispensed':
@@ -68,6 +59,7 @@ interface LabResultUploaderProps {
 }
 
 function LabResultUploader({ itemId, result, isUploading, onUpload }: LabResultUploaderProps) {
+  const format = useFormat();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,7 +100,8 @@ function LabResultUploader({ itemId, result, isUploading, onUpload }: LabResultU
           <div>
             <p className={styles.resultName}>{result.fileName}</p>
             <p className={styles.resultMeta}>
-              {formatBytes(result.sizeBytes)} · uploaded {formatDateTime(result.uploadedAt)}
+              {formatBytes(result.sizeBytes)} · uploaded{' '}
+              <time dateTime={result.uploadedAt}>{format.formatDateTime(result.uploadedAt)}</time>
             </p>
             {result.downloadUrl ? (
               <a href={result.downloadUrl} target="_blank" rel="noreferrer">
@@ -150,6 +143,7 @@ function LabResultUploader({ itemId, result, isUploading, onUpload }: LabResultU
 }
 
 export function FacilityQueuePanel({ facilityId }: { facilityId: string }) {
+  const format = useFormat();
   const queueQuery = useFacilityQueue(facilityId);
   const statusMutation = useUpdateFulfillmentStatus(facilityId);
   const uploadMutation = useUploadLabResult(facilityId);
@@ -273,7 +267,9 @@ export function FacilityQueuePanel({ facilityId }: { facilityId: string }) {
                       <span aria-hidden="true">·</span>
                       <span>{item.orderType === 'prescription' ? 'Prescription' : 'Diagnostic test'}</span>
                       <span aria-hidden="true">·</span>
-                      <span>Received {formatDateTime(item.receivedAt)}</span>
+                      <span>
+                        Received <time dateTime={item.receivedAt}>{format.formatDateTime(item.receivedAt)}</time>
+                      </span>
                     </p>
                   </div>
                   <span
@@ -293,7 +289,9 @@ export function FacilityQueuePanel({ facilityId }: { facilityId: string }) {
                       {attributionVerb(item.attribution.action)}{' '}
                       <strong>{item.attribution.performedByName}</strong> (
                       {item.attribution.performedByRole}) on{' '}
-                      {formatDateTime(item.attribution.timestamp)}
+                      <time dateTime={item.attribution.timestamp}>
+                        {format.formatDateTime(item.attribution.timestamp)}
+                      </time>
                       {item.attribution.notes ? ` — “${item.attribution.notes}”` : ''}
                     </span>
                   </div>

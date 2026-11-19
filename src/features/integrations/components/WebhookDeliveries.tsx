@@ -1,5 +1,6 @@
 import { Spinner } from '../../../components/Spinner';
 import { Button } from '../../../components/Button';
+import { useFormat } from '../../../i18n/useFormat';
 import { useWebhookDeliveries, useRedeliverWebhook } from '../hooks/useIntegrations';
 import type { WebhookDelivery, WebhookDeliveryStatus } from '../../../types/models';
 import styles from './Integrations.module.css';
@@ -47,6 +48,7 @@ interface WebhookDeliveriesProps {
 }
 
 export function WebhookDeliveries({ facilityId, endpointId }: WebhookDeliveriesProps) {
+  const format = useFormat();
   const { data: deliveriesData, isLoading } = useWebhookDeliveries(facilityId, endpointId);
   const redeliverMutation = useRedeliverWebhook(facilityId);
 
@@ -110,9 +112,11 @@ export function WebhookDeliveries({ facilityId, endpointId }: WebhookDeliveriesP
                 </td>
                 <td>{delivery.attemptCount}</td>
                 <td>
-                  {delivery.deliveredAt
-                    ? new Date(delivery.deliveredAt).toLocaleTimeString()
-                    : '—'}
+                  {delivery.deliveredAt ? (
+                    <time dateTime={delivery.deliveredAt}>{format.formatTime(delivery.deliveredAt)}</time>
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className={styles.actionCell}>
                   {(delivery.status === 'failed' || delivery.status === 'pending') && (

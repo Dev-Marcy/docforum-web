@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '../../../components/Button';
 import { Spinner } from '../../../components/Spinner';
 import { CreateApiKeyDialog } from './CreateApiKeyDialog';
+import { useFormat } from '../../../i18n/useFormat';
 import { useApiKeys, useRevokeApiKey } from '../hooks/useIntegrations';
 import type { FacilityApiKey } from '../../../types/models';
 import styles from './Integrations.module.css';
@@ -35,6 +36,7 @@ interface ApiKeysPanelProps {
 }
 
 export function ApiKeysPanel({ facilityId }: ApiKeysPanelProps) {
+  const format = useFormat();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { data: keysData, isLoading } = useApiKeys(facilityId);
   const revokeMutation = useRevokeApiKey(facilityId);
@@ -111,11 +113,15 @@ export function ApiKeysPanel({ facilityId }: ApiKeysPanelProps) {
                       ))
                     )}
                   </td>
-                  <td>{new Date(key.createdAt).toLocaleDateString()}</td>
                   <td>
-                    {key.lastUsedAt
-                      ? new Date(key.lastUsedAt).toLocaleDateString()
-                      : 'Never'}
+                    <time dateTime={key.createdAt}>{format.formatDate(key.createdAt)}</time>
+                  </td>
+                  <td>
+                    {key.lastUsedAt ? (
+                      <time dateTime={key.lastUsedAt}>{format.formatDate(key.lastUsedAt)}</time>
+                    ) : (
+                      'Never'
+                    )}
                   </td>
                   <td className={styles.actionCell}>
                     <Button

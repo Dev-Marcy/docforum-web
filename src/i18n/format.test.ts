@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createFormatters,
   directionFor,
+  formatCalendarWeekday,
   isRtlLocale,
   parseIso,
 } from './format';
@@ -83,6 +84,50 @@ describe('asset amounts (#88)', () => {
   it('never silently accepts a non-integer minor-unit string', () => {
     expect(() => enUS.formatAssetAmount('1.5', 'XLM', { decimals: 7 })).toThrow(/minor-unit/);
     expect(() => enUS.formatDecimalString('1,5')).toThrow(/decimal string/);
+  });
+});
+
+describe('calendar days vs instants (#254/#255)', () => {
+  it('formats the same instant in the configured zone', () => {
+    const value = '2026-03-04T23:30:00Z';
+    expect(enUS.formatDate(value, { timeZone: 'UTC' })).toBe('Mar 4, 2026');
+    expect(enUS.formatDate(value, { timeZone: 'Asia/Tokyo' })).toBe('Mar 5, 2026');
+  });
+
+  it('never shifts a date-only value, whatever zone is asked for', () => {
+    for (const timeZone of ['Pacific/Kiritimati', 'Pacific/Midway', 'UTC']) {
+      expect(enUS.formatDate('2026-03-04', { timeZone })).toBe('Mar 4, 2026');
+      expect(enUS.formatDateTime('2026-03-04', { timeZone })).toContain('Mar 4, 2026');
+    }
+  });
+
+  it('formats a local calendar day without a zone shift', () => {
+    // 00:30 on 4 March in the test machine's zone. Anchored by its own date
+    // parts, so no conversion can move it.
+    const day = new Date(2026, 2, 4, 0, 30);
+    expect(enUS.formatCalendarDate(day)).toBe('Mar 4, 2026');
+    expect(enGB.formatCalendarDate(day)).toBe('4 Mar 2026');
+    expect(deDE.formatCalendarDate(day)).toContain('März');
+    expect(formatCalendarWeekday(day, 'en-US')).toBe('Wed');
+  });
+
+  it('honours an explicit 24-hour clock', () => {
+    expect(enUS.formatTime('2026-03-04T14:05:00Z', { timeZone: 'UTC', hourCycle: 'h23' })).toBe('14:05');
+  });
+
+  it('handles a DST transition without inventing a wall-clock hour', () => {
+    // US clocks jump 02:00 → 03:00 on 8 March 2026.
+    expect(
+      enUS.formatTime('2026-03-08T06:30:00Z', { timeZone: 'America/New_York', hourCycle: 'h23' }),
+    ).toBe('01:30');
+    expect(
+      enUS.formatTime('2026-03-08T07:30:00Z', { timeZone: 'America/New_York', hourCycle: 'h23' }),
+    ).toBe('03:30');
+  });
+
+  it('exposes the zone the formatter is bound to', () => {
+    expect(createFormatters('en-US', 'Asia/Tokyo').timeZone).toBe('Asia/Tokyo');
+    expect(enUS.formatCalendarDate('not-a-date')).toBe('—');
   });
 });
 
